@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>力學探索實驗室</title>
+<style>
+/* 力學探索實驗室 — 全部樣式與色彩變數（淺色實驗室風） */
+:root {
+  /* 版面底色 */
+  --bg: #eef2f6;
+  --panel: #ffffff;
+  --panel-2: #f6f9fc;
+  --line: #d5dee8;
+  --line-2: #b9c6d4;
+  --ink: #1b2733;
+  --ink-2: #4a5a6a;
+  --ink-3: #7b8896;
+  --brand: #1565c0;
+  --brand-2: #0d47a1;
+  --brand-soft: #e3effc;
+  --ok: #18794e;
+  --ok-soft: #e2f4ea;
+  --warn: #a15c00;
+  --warn-soft: #fff3dc;
+  --bad: #b3261e;
+  --bad-soft: #fde8e6;
+
+  /* 色彩語意（全教具固定，不得混用）— 與 kit.js 的 Kit.C 同值 */
+  --c-x: #0b63c5;   /* 位置、位移 */
+  --c-v: #0a8f6a;   /* 速度 */
+  --c-a: #d4500a;   /* 加速度 */
+  --c-f: #7a3eb1;   /* 施力：拉力、推力、繩子張力 */
+  --c-fg: #8d4a17;  /* 重力（重量、萬有引力） */
+  --c-fn: #0e7490;  /* 正向力（支撐力） */
+  --c-ff: #c2255c;  /* 摩擦力 */
+  --c-fe: #5b7a0c;  /* 彈力 */
+  --nav: #22364f;   /* 「目前在哪裡」：單元、步驟（與可以按的藍色按鈕分開） */
+  --c-net: #1b2733; /* 合力 */
+  --c-k: #c98a00;   /* 動能 */
+  --c-u: #2f9ccb;   /* 位能 */
+  --c-q: #7f8a96;
+  --c-path: #b8336a; /* 路徑長（輔助色） */   /* 熱能 */
+
+  --r: 12px;
+  --shadow: 0 1px 2px rgba(27, 39, 51, .06), 0 4px 14px rgba(27, 39, 51, .06);
+  --font: "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", "Heiti TC", system-ui, sans-serif;
+  --mono: "SF Mono", Consolas, "Cascadia Mono", Menlo, monospace;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body {
+  font-family: var(--font); color: var(--ink); background: var(--bg);
+  font-size: 16px; line-height: 1.6; -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent; overscroll-behavior: none;
+}
+button, select, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+em { font-style: normal; font-weight: 700; color: var(--brand-2); background: linear-gradient(transparent 62%, #ffe58a 62%); padding: 0 1px; }
+h1, h2, h3, h4, p { margin: 0; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
+/* ---------- 外殼 ---------- */
+.app { height: 100%; display: flex; flex-direction: column; }
+/* 標頭一列：品牌｜區｜單元｜分頁｜紀錄 */
+.topbar {
+  flex: none; height: 54px; display: flex; align-items: center; gap: 8px; padding: 0 10px;
+  background: var(--panel); border-bottom: 1px solid var(--line);
+}
+.brand { display: flex; align-items: center; gap: 8px; text-decoration: none; color: var(--ink); min-height: 44px; flex: none; }
+.brand img { width: 38px; height: 38px; object-fit: contain; }
+.brand b { font-size: 17px; letter-spacing: .5px; white-space: nowrap; }
+.zone-tag {
+  font-size: 13px; font-weight: 700; color: var(--brand-2); background: var(--brand-soft);
+  border-radius: 999px; padding: 3px 10px; white-space: nowrap; flex: none;
+}
+.unit-nav { display: flex; gap: 5px; flex: 1 1 auto; min-width: 0; }
+.unit-chip {
+  flex: none; min-height: 44px; min-width: 44px; padding: 0 10px; border: 1px solid var(--line); border-radius: 10px;
+  background: var(--panel-2); font-size: 14px; white-space: nowrap; display: inline-flex; align-items: center; gap: 8px; overflow: hidden;
+}
+.unit-chip b { font-weight: 700; flex: none; }
+.unit-chip .unit-name { display: none; font-weight: 600; overflow: hidden; text-overflow: ellipsis; }
+.unit-chip[aria-current="true"] { background: var(--nav); border-color: var(--nav); color: #fff; flex: 0 1 auto; min-width: 96px; }
+.unit-chip[aria-current="true"] .unit-name { display: block; font-size: 15px; }
+.unit-chip:disabled { opacity: .5; cursor: default; }
+.unit-chip:disabled .unit-name { display: block; font-size: 12px; font-weight: 500; color: var(--ink-2); }
+.rec-btn { flex: none; }
+
+.btn {
+  min-height: 44px; padding: 0 14px; border-radius: 10px; border: 1px solid var(--line-2);
+  background: var(--panel); font-weight: 600; font-size: 15px; white-space: nowrap;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+}
+.btn:active { transform: translateY(1px); }
+/* 三種狀態用三種樣子：實心藍＝可以按的主要動作；淡藍底加藍框＝已選取的選項；深色＝目前所在的單元或步驟 */
+.btn.primary { background: var(--brand); border-color: var(--brand-2); color: #fff; box-shadow: 0 2px 0 var(--brand-2); }
+.btn.ghost { border-color: transparent; background: transparent; color: var(--brand-2); }
+.btn.small { min-height: 44px; padding: 0 10px; font-size: 14px; }
+.btn:disabled { opacity: .45; cursor: default; }
+.btn[aria-pressed="true"] { background: var(--brand-soft); border-color: var(--brand); color: var(--brand-2); }
+
+.tabs { display: flex; gap: 2px; margin-left: auto; flex: none; align-self: stretch; align-items: flex-end; }
+.tab {
+  min-height: 44px; padding: 0 14px; border: 0; background: transparent; border-radius: 10px 10px 0 0;
+  font-weight: 700; font-size: 15px; color: var(--ink-2); border-bottom: 3px solid transparent; white-space: nowrap;
+}
+.tab[aria-selected="true"] { color: var(--brand-2); border-bottom-color: var(--brand); background: var(--panel); }
+.tab .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-left: 5px; background: var(--line-2); vertical-align: 2px; }
+.tab .dot.done { background: var(--ok); }
+
+.view {
+  flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 10px 12px 14px;
+  background-image: linear-gradient(rgba(21, 101, 192, .035) 1px, transparent 1px), linear-gradient(90deg, rgba(21, 101, 192, .035) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+/* 內容用滿整個寬度（大螢幕由外殼等比例放大，不靠左右留白置中） */
+.wrap { max-width: none; margin: 0; }
+
+/* ---------- 通用卡片 ---------- */
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); box-shadow: var(--shadow); padding: 12px 14px; }
+.card h2 { font-size: 17px; margin-bottom: 6px; }
+.card h3 { font-size: 15px; margin: 8px 0 4px; }
+.card p { margin: 0 0 8px; }
+.card p:last-child { margin-bottom: 0; }
+/* 左右兩欄等高：上緣、下緣都對齊。欄內最後一張卡片負責補滿高度。 */
+.split { display: grid; grid-template-columns: minmax(0, 1fr) clamp(330px, 28%, 400px); gap: 10px; align-items: stretch; }
+.split > .stack > .card:last-child, .split > .stack > .fill { flex: 1 1 auto; }
+.cols { display: grid; gap: 10px; align-items: stretch; }
+/* 原本直接放在背景上的按鈕列、圖例、說明：由 LAB.tidy 自動加上外框，看起來屬於同一套卡片 */
+.loose { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); box-shadow: var(--shadow); padding: 6px 10px; margin-top: 0; }
+p.loose, .legend.loose { margin: 0; }
+.seg.loose { padding: 0; box-shadow: none; }
+.loose:empty, .legend:empty, .toggles:empty { display: none; }
+.cols > .card, .cols > .stack > .card:last-child { min-width: 0; }
+.cols > .stack > .card:last-child, .cols > .stack > .fill { flex: 1 1 auto; }
+.split.wide-text { grid-template-columns: minmax(0, 1fr) clamp(380px, 32%, 460px); }
+.stack { display: flex; flex-direction: column; gap: 10px; }
+.row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.muted { color: var(--ink-2); font-size: 14px; }
+.tag { display: inline-block; font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: var(--brand-soft); color: var(--brand-2); white-space: nowrap; }
+.tag.lv { background: #eef1f5; color: var(--ink-2); }
+.tag.ext { background: #f1e6fb; color: #5b2a91; }
+.tag.code { font-family: var(--mono); background: transparent; border: 1px solid var(--line); color: var(--ink-3); font-weight: 500; }
+
+.formula {
+  font-family: "Cambria Math", "Times New Roman", var(--font); font-size: 19px; text-align: center;
+  background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; margin: 6px 0 8px;
+}
+.formula small { display: block; font: 13px var(--font); color: var(--ink-2); margin-top: 2px; }
+.sym-x { color: var(--c-x); font-weight: 700; }
+.sym-v { color: var(--c-v); font-weight: 700; }
+.sym-a { color: var(--c-a); font-weight: 700; }
+.sym-f { color: var(--c-f); font-weight: 700; }
+.sym-fg { color: var(--c-fg); font-weight: 700; }
+.sym-fn { color: var(--c-fn); font-weight: 700; }
+.sym-ff { color: var(--c-ff); font-weight: 700; }
+.sym-fe { color: var(--c-fe); font-weight: 700; }
+.sym-k { color: var(--c-k); font-weight: 700; }
+.sym-u { color: var(--c-u); font-weight: 700; }
+
+details.ext { border: 1px dashed var(--line-2); border-radius: 10px; padding: 0 12px; margin-top: 8px; background: var(--panel-2); }
+details.ext > summary { min-height: 44px; display: flex; align-items: center; font-weight: 700; color: #5b2a91; cursor: pointer; list-style: none; }
+details.ext > summary::-webkit-details-marker { display: none; }
+details.ext > summary::before { content: "＋"; margin-right: 6px; }
+details.ext[open] > summary::before { content: "－"; }
+details.ext > div { padding-bottom: 10px; }
+
+.note { border-left: 4px solid var(--brand); background: var(--brand-soft); border-radius: 0 8px 8px 0; padding: 6px 10px; font-size: 15px; }
+.note.ok { border-color: var(--ok); background: var(--ok-soft); }
+.note.warn { border-color: var(--warn); background: var(--warn-soft); }
+.note.bad { border-color: var(--bad); background: var(--bad-soft); }
+
+/* ---------- 認識（guided） ---------- */
+/* 步驟列固定一列：放不下時，非目前的步驟自動縮短（省略號），目前的步驟永遠完整顯示 */
+.steps-nav { display: flex; gap: 6px; flex-wrap: nowrap; margin-bottom: 8px; }
+.step-pill {
+  min-height: 44px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel);
+  font-size: 14px; font-weight: 600; color: var(--ink-2); white-space: nowrap;
+  flex: 0 1 auto; min-width: 46px; overflow: hidden; text-overflow: ellipsis;
+}
+.step-pill[aria-current="true"] { flex-shrink: 0; }
+.step-pill b { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: #e7edf3; margin-right: 5px; font-size: 13px; }
+.step-pill.seen b { background: var(--ok-soft); color: var(--ok); }
+.step-pill[aria-current="true"] { background: var(--nav); border-color: var(--nav); color: #fff; }
+.step-pill[aria-current="true"] b { background: #fff; color: var(--nav); }
+.guided-text { display: flex; flex-direction: column; gap: 0; }
+.guided-foot { display: flex; justify-content: space-between; gap: 8px; margin-top: 10px; }
+
+/* ---------- POE ---------- */
+.round-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; }
+.round-card { text-align: left; padding: 14px; border-radius: var(--r); border: 1px solid var(--line); background: var(--panel); box-shadow: var(--shadow); min-height: 120px; display: flex; flex-direction: column; gap: 6px; }
+.round-card b { font-size: 16px; }
+.round-card .state { margin-top: auto; font-size: 13px; color: var(--ink-3); }
+.round-card.done .state { color: var(--ok); font-weight: 700; }
+.poe-phases { display: flex; gap: 0; margin-bottom: 8px; align-items: center; }
+.poe-phase { flex: none; padding: 4px 14px; font-weight: 700; font-size: 14px; color: var(--ink-3); background: #e7edf3; }
+.poe-phase:first-child { border-radius: 999px 0 0 999px; }
+.poe-phase:nth-child(3) { border-radius: 0 999px 999px 0; }
+.poe-phase.on { background: var(--nav); color: #fff; }
+.poe-phase.past { background: var(--ok-soft); color: var(--ok); }
+.opts { display: grid; gap: 8px; }
+.opt {
+  text-align: left; min-height: 48px; padding: 8px 12px; border-radius: 10px; border: 1.5px solid var(--line-2); background: var(--panel);
+  display: flex; gap: 10px; align-items: flex-start; font-size: 15px; line-height: 1.5;
+}
+.opt .k { flex: none; width: 26px; height: 26px; border-radius: 50%; background: #e7edf3; display: grid; place-items: center; font-weight: 700; font-size: 14px; }
+.opt.pick { border-color: var(--brand); background: var(--brand-soft); }
+.opt.right { border-color: var(--ok); background: var(--ok-soft); }
+.opt.right .k { background: var(--ok); color: #fff; }
+.opt.wrong { border-color: var(--bad); background: var(--bad-soft); }
+.opt.wrong .k { background: var(--bad); color: #fff; }
+.opt:disabled { cursor: default; color: var(--ink); opacity: 1; }
+.opt .why { display: block; font-size: 14px; color: var(--ink-2); margin-top: 2px; }
+.status-line { min-height: 48px; display: flex; align-items: center; gap: 8px; font-size: 15px; }
+
+/* ---------- 挑戰 ---------- */
+.goal { display: flex; gap: 10px; align-items: center; background: var(--warn-soft); border: 1px solid #f0d49a; border-radius: 10px; padding: 8px 12px; margin-bottom: 8px; }
+.goal b { flex: none; color: var(--warn); }
+.goal.passed { background: var(--ok-soft); border-color: #a9dcc0; }
+.goal.passed b { color: var(--ok); }
+
+/* ---------- 檢核 ---------- */
+.quiz-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+.quiz-progress { flex: 1; height: 8px; background: #e2e8ef; border-radius: 99px; overflow: hidden; min-width: 80px; }
+.quiz-progress i { display: block; height: 100%; background: var(--brand); }
+.quiz-q { font-size: 17px; font-weight: 600; margin: 6px 0 10px; }
+.quiz-fig { max-width: 420px; margin: 0 0 10px; }
+.score-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 10px 0; }
+.score-cell { background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 8px; text-align: center; }
+.score-cell b { display: block; font-size: 20px; }
+
+/* ---------- kit：時間軸 ---------- */
+/* 一列放完：時間軸拉桿可以縮短，把工具開關（頻閃影像、紙帶…）收在同一列；真的放不下才換列 */
+.tl { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.tl .btn { min-width: 44px; padding: 0 8px; }
+.tl input[type=range] { flex: 1 1 60px; min-width: 60px; }
+.tl-tools { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.tl-tools:empty { display: none; }
+.tl-tools .chip, .tl-tools .btn { padding: 0 10px; }
+.tl .tl-time { font: 600 15px var(--mono); min-width: 74px; text-align: right; white-space: nowrap; }
+.tl select { min-height: 44px; border-radius: 10px; border: 1px solid var(--line-2); background: var(--panel); padding: 0 6px; }
+input[type=range] { -webkit-appearance: none; appearance: none; height: 44px; background: transparent; margin: 0; touch-action: none; }
+input[type=range]::-webkit-slider-runnable-track { height: 8px; border-radius: 99px; background: #cfd9e4; }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 26px; height: 26px; border-radius: 50%; background: var(--brand); border: 3px solid #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, .3); margin-top: -9px; }
+input[type=range]::-moz-range-track { height: 8px; border-radius: 99px; background: #cfd9e4; }
+input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 50%; background: var(--brand); border: 3px solid #fff; }
+
+/* ---------- kit：記錄器 ---------- */
+.rec { display: grid; gap: 8px; }
+.rec.side { grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); align-items: start; }
+.rec-main { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.rec-graphs { display: grid; gap: 6px; min-width: 0; }
+.rec.stackg .rec-graphs { grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); }
+.stage { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; position: relative; }
+.stage canvas, .graph canvas { display: block; width: 100%; touch-action: none; }
+.graph { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.toggles { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip {
+  min-height: 44px; padding: 0 12px; border-radius: 999px; border: 1.5px solid var(--line-2); background: var(--panel);
+  font-size: 14px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
+}
+.chip i { width: 12px; height: 12px; border-radius: 3px; background: var(--ink-3); flex: none; }
+.chip[aria-pressed="true"] { background: var(--brand-soft); border-color: var(--brand); color: var(--brand-2); }
+.chip[aria-pressed="false"] { color: var(--ink-3); }
+.chip[aria-pressed="false"] i { opacity: .35; }
+
+.ctrl { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 4px 10px; }
+.ctrl label { font-weight: 600; font-size: 15px; white-space: nowrap; }
+.ctrl output { font: 600 15px var(--mono); min-width: 84px; text-align: right; white-space: nowrap; }
+.seg { display: inline-flex; border: 1.5px solid var(--line-2); border-radius: 10px; overflow: hidden; background: var(--panel); }
+.seg button { min-height: 44px; padding: 0 14px; border: 0; background: transparent; font-weight: 600; font-size: 15px; border-right: 1px solid var(--line); white-space: nowrap; }
+.seg button:last-child { border-right: 0; }
+.seg button[aria-pressed="true"] { background: var(--brand-soft); color: var(--brand-2); font-weight: 700; box-shadow: inset 0 0 0 2px var(--brand); }
+.seg button:first-child[aria-pressed="true"] { border-radius: 8px 0 0 8px; }
+.seg button:last-child[aria-pressed="true"] { border-radius: 0 8px 8px 0; }
+.seg button:only-child[aria-pressed="true"] { border-radius: 8px; }
+.seg button:disabled { opacity: .4; cursor: default; }
+.readout { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 6px; }
+.readout div { background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 4px 8px; font-size: 13px; color: var(--ink-2); }
+.readout b { display: block; font: 700 17px var(--mono); color: var(--ink); white-space: nowrap; }
+
+/* ---------- kit：能量長條 ---------- */
+.ebars { display: flex; align-items: flex-end; gap: 10px; height: 190px; padding: 22px 8px 0; position: relative; border-bottom: 2px solid var(--ink-2); }
+.ebar { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; height: 100%; min-width: 0; position: relative; }
+.ebar i { display: block; width: 70%; max-width: 46px; border-radius: 5px 5px 0 0; min-height: 0; }
+.ebar span { position: absolute; bottom: -44px; font-size: 13px; font-weight: 700; text-align: center; white-space: nowrap; line-height: 1.3; }
+.ebar span small { display: block; font: 500 12px var(--mono); color: var(--ink-2); }
+.ebars-wrap { padding-bottom: 48px; }
+.ebars .total { position: absolute; left: 0; right: 0; border-top: 2px dashed var(--ink); height: 0; }
+.ebars .total b { position: absolute; right: 2px; top: -20px; font-size: 12px; background: var(--panel); padding: 0 4px; white-space: nowrap; }
+
+/* ---------- kit：解題卡 ---------- */
+.sol { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--panel); }
+.sol-title { background: var(--panel-2); padding: 6px 12px; font-weight: 700; border-bottom: 1px solid var(--line); }
+.sol-step { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 6px 12px; border-bottom: 1px solid var(--line); }
+.sol-step .k { font-size: 13px; font-weight: 700; color: #fff; background: var(--ink-2); border-radius: 6px; text-align: center; padding: 1px 0; }
+.sol-step.ans .k { background: var(--ok); }
+.sol-step .b { font-size: 15px; }
+.sol-step.hide { display: none; }
+.sol-foot { display: flex; gap: 6px; padding: 6px 12px; }
+
+/* ---------- 對話框（取代 alert／confirm） ---------- */
+.modal { position: fixed; inset: 0; background: rgba(20, 30, 40, .45); display: grid; place-items: center; z-index: 50; padding: 16px; }
+.modal-box { background: var(--panel); border-radius: 14px; max-width: 760px; width: 100%; max-height: 100%; display: flex; flex-direction: column; box-shadow: 0 12px 40px rgba(0, 0, 0, .25); }
+.modal-head { display: flex; align-items: center; justify-content: space-between; padding: 8px 8px 8px 16px; border-bottom: 1px solid var(--line); }
+.modal-body { padding: 12px 16px; overflow: auto; }
+.modal-foot { padding: 8px 16px 12px; display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+table.rec-table { border-collapse: collapse; width: 100%; font-size: 14px; }
+table.rec-table th, table.rec-table td { border-bottom: 1px solid var(--line); padding: 5px 8px; text-align: left; }
+table.rec-table th { background: var(--panel-2); position: sticky; top: 0; }
+.zoomable { cursor: zoom-in; }
+.zoom-box { background: #fff; border-radius: 12px; padding: 10px; max-width: 96vw; max-height: 92vh; overflow: auto; }
+.zoom-box > * { width: min(92vw, 1100px); height: auto; display: block; }
+.toast { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); background: var(--ink); color: #fff; padding: 8px 16px; border-radius: 999px; z-index: 60; font-size: 14px; }
+
+.placeholder { text-align: center; padding: 48px 16px; color: var(--ink-2); }
+
+/* ---------- 入口頁 ---------- */
+.home { max-width: 1000px; margin: 0 auto; padding: 18px 16px 28px; }
+.home-hero { display: flex; align-items: center; gap: 18px; margin-bottom: 16px; }
+.home-hero img { width: 104px; height: 104px; object-fit: contain; flex: none; }
+.home-hero h1 { font-size: 30px; letter-spacing: 1px; }
+.home-hero p { color: var(--ink-2); }
+.zone-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.zone-card { display: flex; flex-direction: column; gap: 6px; text-decoration: none; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); padding: 14px; border-top: 6px solid var(--zc, var(--brand)); min-height: 260px; }
+.zone-card h2 { font-size: 20px; }
+.zone-card svg { width: 100%; height: 96px; }
+.zone-card ul { margin: 0; padding-left: 18px; font-size: 14px; color: var(--ink-2); }
+.zone-card .go { margin-top: auto; font-weight: 700; color: var(--zc, var(--brand)); }
+.zone-card.off { opacity: .6; }
+.home-foot { margin-top: 14px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 12px; font-size: 14px; align-content: flex-start; align-items: center; }
+.legend span { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+.legend i { width: 14px; height: 14px; border-radius: 4px; display: inline-block; }
+
+@media (max-width: 860px) {
+  .split, .split.wide-text, .rec.side { grid-template-columns: minmax(0, 1fr); }
+  .zone-grid, .home-foot { grid-template-columns: 1fr; }
+  .topbar { height: auto; flex-wrap: wrap; padding: 4px 10px 0; }
+  .tabs { margin-left: 0; overflow-x: auto; }
+}
+
+.sym-p { color: var(--c-path); font-weight: 700; }
+
+.steps-codes { margin-left: auto; align-self: center; flex: none; font: 12px var(--mono); color: var(--ink-3); white-space: nowrap; padding-left: 8px; }
+/* 窄螢幕（iPad 橫向）：省略品牌文字與區名，把寬度留給單元名稱與分頁 */
+@media (max-width: 1180px) {
+  .brand b, .zone-tag span, .rec-btn i { display: none; }
+  .tab { padding: 0 9px; }
+  .steps-codes { display: none; }
+}
+
+/* Kit.slider 的三種長相 */
+.pickbox { min-width: 0; position: relative; }
+.pickbox input[type=range] { width: 100%; display: block; }
+.pickbox.pick { display: flex; flex-wrap: wrap; gap: 4px; }
+.pick-btn { min-height: 44px; min-width: 46px; padding: 0 10px; border: 1.5px solid var(--line-2); border-radius: 10px; background: var(--panel); font: 600 15px var(--mono); white-space: nowrap; }
+.pick-btn[aria-pressed="true"] { background: var(--brand-soft); border-color: var(--brand); color: var(--brand-2); font-weight: 700; box-shadow: inset 0 0 0 1px var(--brand); }
+.pick-btn:disabled { opacity: .45; cursor: default; }
+.pickbox.ticks { display: flex; align-items: center; gap: 6px; }
+.pickbox .track { position: relative; flex: 1 1 auto; min-width: 0; }
+.pickbox .ticks { position: absolute; left: 13px; right: 13px; bottom: 5px; height: 6px; pointer-events: none; }
+.step-btn { flex: none; width: 44px; min-height: 44px; border: 1.5px solid var(--line-2); border-radius: 10px; background: var(--panel); font: 700 18px var(--mono); line-height: 1; }
+.step-btn:disabled { opacity: .35; cursor: default; }
+.pickbox.narrow .step-btn { display: none; }
+.ctrl output.unit-only { min-width: 0; text-align: left; }
+.pickbox .ticks i { position: absolute; top: 0; width: 2px; height: 6px; margin-left: -1px; background: var(--line-2); border-radius: 1px; }
+.pickbox.pick { align-items: center; }
+.pick-unit { font: 600 15px var(--mono); color: var(--ink-2); margin-left: 4px; white-space: nowrap; }
+
+.rec-btn i { font-style: normal; }
+/* 上下分數：關係式與公式裡的除法一律這樣排（原始字串寫 {{分子//分母}}） */
+.frac { display: inline-flex; flex-direction: column; vertical-align: middle; text-align: center; line-height: 1.25; margin: 0 3px; white-space: nowrap; }
+.frac > span:first-child { border-bottom: 1.5px solid currentColor; padding: 0 5px 1px; }
+.frac > span:last-child { padding: 1px 5px 0; }
+.formula .frac { line-height: 1.3; }
+.opt .frac, .sol-step .frac, .readout .frac, td .frac, th .frac { font-size: .92em; }
+/* 力的符號（F、FN、mg、f、T…）：與公式、解題卡用同一套 */
+.fsym { font-family: "Cambria Math", "Times New Roman", serif; font-style: italic; font-weight: 700; font-size: 1.08em; margin-right: 3px; }
+.fsym sub { font-style: normal; font-size: .7em; }
+/* 固定樣式的小提醒框：單位換算（kgw 與 N）只在這種框裡出現 */
+.unit-tip { border: 1px dashed var(--line-2); background: var(--panel-2); border-radius: 8px; padding: 5px 10px; font-size: 14px; color: var(--ink-2); margin: 6px 0; }
+.unit-tip::before { content: "單位提醒"; font-weight: 700; color: var(--ink); margin-right: 8px; font-size: 13px; background: #e7edf3; border-radius: 6px; padding: 1px 6px; }
+/* 推導：一步一行，最後的結果另外框成重點 */
+.derive { border: 1px solid var(--line); border-radius: 10px; background: var(--panel); margin: 6px 0 8px; overflow: hidden; }
+.derive > div { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 8px; align-items: center; padding: 5px 10px; border-bottom: 1px solid var(--line); font-size: 15px; }
+.derive > div > b:first-child { width: 22px; height: 22px; border-radius: 50%; background: #e7edf3; display: grid; place-items: center; font-size: 13px; }
+.derive > div.key { background: var(--warn-soft); border-bottom: 0; font-family: "Cambria Math", "Times New Roman", var(--font); font-size: 18px; }
+.derive > div.key > b:first-child { background: var(--warn); color: #fff; }
+.derive > div:last-child { border-bottom: 0; }
+
+/* ---------- 概念構圖（cmap.js）：方框大小由文字決定，連線由程式量位置後才畫 ---------- */
+.cmap { overflow-x: auto; }
+.cmap-grid { position: relative; display: grid; gap: 16px 30px; justify-content: space-between; align-items: stretch; padding: 4px 2px 6px; }
+.cmap-lines { position: absolute; left: 0; top: 0; pointer-events: none; overflow: visible; }
+.cmap-lines .cm-e { fill: none; stroke: #6b7a8a; stroke-width: 1.8; }
+.cm-node { position: relative; z-index: 1; display: flex; flex-direction: column; justify-content: center; gap: 2px; min-width: 0; max-width: 300px;
+  padding: 8px 12px; border: 1.5px solid var(--line-2); border-radius: 10px; background: var(--panel); color: var(--ink);
+  font: inherit; text-align: left; overflow-wrap: anywhere; line-height: 1.45; text-wrap: pretty; }
+button.cm-node { cursor: pointer; min-height: 44px; }
+button.cm-node:hover, button.cm-node:focus-visible { border-color: var(--brand); box-shadow: 0 0 0 2px var(--brand-soft); outline: none; }
+.cm-node .cm-t { font-size: 15.5px; font-weight: 700; }
+.cm-node .cm-l { font-size: 13.5px; color: var(--ink-2); }
+.cm-node.has-u { padding-right: 42px; }
+.cm-node .cm-u { position: absolute; top: 6px; right: 6px; font: 700 11px var(--mono); font-style: normal; background: var(--panel); border: 1px solid var(--line-2); border-radius: 6px; padding: 0 5px; line-height: 16px; color: var(--ink-2); }
+.cm-node.zone { justify-content: center; align-items: center; text-align: center; }
+.cm-node.zone .cm-l { text-align: center; }
+.cm-node.z-a { background: #e3effc; border-color: var(--c-x); }
+.cm-node.z-b { background: #f1e6fb; border-color: var(--c-f); }
+.cm-node.z-c { background: #fff3dc; border-color: var(--c-k); }
+.cm-node.law { background: var(--nav); border-color: var(--nav); color: #fff; }
+.cm-node.law .cm-l { color: #dfe8f2; }
+.cm-node.law .cm-u { color: var(--ink); }
+.cm-node.rel { justify-self: center; align-self: center; border: 0; background: var(--panel-2); border-radius: 999px; padding: 3px 10px; text-align: center; max-width: 8em; }
+.cm-node.rel .cm-t, .cm-node.rel .cm-l { font-size: 13px; font-weight: 600; color: var(--ink-2); }
+.cmap.has-here .cm-node.dim { opacity: .5; }
+.cm-node.here { border-width: 3px; border-color: var(--warn); box-shadow: 0 0 0 3px var(--warn-soft); }
+.cm-node.law.here { border-color: var(--warn); }
+.cm-node .cm-here { order: -1; align-self: flex-start; font: 700 12px var(--font); font-style: normal; background: var(--warn); color: #fff; border-radius: 6px; padding: 0 6px; line-height: 19px; margin-bottom: 2px; }
+.cmap-notes { margin: 8px 0 0; padding-left: 20px; font-size: 14px; color: var(--ink-2); }
+.cmap-notes li { margin: 2px 0; }
+.home-sum { margin-top: 14px; }
+.home-sum h2 { font-size: 20px; margin-bottom: 4px; }
+
+/* 2026-11-24 使用者退件：說明文字很長時整頁被拉長、左欄空出一大塊。
+ * 改成說明卡的高度跟著左欄（舞臺＋控制），文字在卡片裡捲動；上一步／下一步固定在卡片底部。
+ * contain: size 讓說明卡不參與決定這一列的高度；min-height 讓左欄很矮時說明卡仍有足夠的閱讀高度。 */
+.split > .card.guided-text { contain: size; overflow-y: auto; min-height: 420px; overscroll-behavior: contain; }
+.guided-text .guided-foot { position: sticky; bottom: -12px; margin: 10px -14px -12px; padding: 8px 14px 12px; background: var(--panel); border-top: 1px solid var(--line); z-index: 2; }
+/* 步驟按鈕平均撐滿整列，不在右邊留一大段空白；領綱代號字放大到看得清楚 */
+.steps-nav .step-pill { flex: 1 1 0; }
+.steps-codes { font-size: 13px; color: var(--ink-2); }
+.steps-nav .step-pill[aria-current="true"] { flex: 0 0 auto; }
+.guided-text > .guided-foot { margin-top: auto; }
+/* 實驗台最上方的場景切換：整列導覽，按鈕平均撐滿（同認識分頁的步驟列） */
+.explore-nav { margin-bottom: 8px; }
+.explore-nav { flex-wrap: nowrap; }
+.explore-nav > .seg { display: flex; flex: 1 1 auto; }
+.explore-nav > .muted { flex: none; white-space: nowrap; }
+.explore-nav > .seg > button { flex: 1 1 0; }
+
+</style>
+</head>
+<body>
+<main class="view" style="height:100%">
+<div class="home">
+  <header class="home-hero">
+    <img src="data:image/png;base64,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" alt="ITT 動手玩科學">
+    <div>
+      <h1>力學探索實驗室</h1>
+      <p>國中理化：直線運動、力與運動、功與能。先預測、再動手、看圖表怎麼說。</p>
+    </div>
+  </header>
+
+  <section class="zone-grid" aria-label="三個學習區">
+    <a class="zone-card" href="motion.html" style="--zc:#0b63c5">
+      <svg viewBox="0 0 300 96" role="img" aria-label="滑車在軌道上的頻閃影像，間距越來越大">
+        <rect x="6" y="71" width="288" height="5" rx="2.5" fill="#dfe8f2"/>
+        <g opacity=".28"><rect x="12" y="50" width="30" height="13" fill="#dfe8f2" stroke="#3d5269" stroke-width="2"/><circle cx="20" cy="66" r="4.5" fill="#3d5269"/><circle cx="34" cy="66" r="4.5" fill="#3d5269"/></g>
+        <g opacity=".28"><rect x="48" y="50" width="30" height="13" fill="#dfe8f2" stroke="#3d5269" stroke-width="2"/><circle cx="56" cy="66" r="4.5" fill="#3d5269"/><circle cx="70" cy="66" r="4.5" fill="#3d5269"/></g>
+        <g opacity=".28"><rect x="98" y="50" width="30" height="13" fill="#dfe8f2" stroke="#3d5269" stroke-width="2"/><circle cx="106" cy="66" r="4.5" fill="#3d5269"/><circle cx="120" cy="66" r="4.5" fill="#3d5269"/></g>
+        <g opacity=".28"><rect x="162" y="50" width="30" height="13" fill="#dfe8f2" stroke="#3d5269" stroke-width="2"/><circle cx="170" cy="66" r="4.5" fill="#3d5269"/><circle cx="184" cy="66" r="4.5" fill="#3d5269"/></g>
+        <g><rect x="240" y="50" width="30" height="13" fill="#dfe8f2" stroke="#3d5269" stroke-width="2"/><circle cx="248" cy="66" r="4.5" fill="#3d5269"/><circle cx="262" cy="66" r="4.5" fill="#3d5269"/></g>
+        <line x1="255" y1="36" x2="282" y2="36" stroke="#0a8f6a" stroke-width="4"/><path d="M296 36l-15-7.5v15z" fill="#0a8f6a"/>
+        <line x1="255" y1="18" x2="268" y2="18" stroke="#d4500a" stroke-width="4"/><path d="M282 18l-15-7.5v15z" fill="#d4500a"/>
+      </svg>
+      <h2>A 區　直線運動</h2>
+      <ul><li>A1 時間、位置、位移與路徑長</li><li>A2 速率、速度與 x-t／v-t 圖</li><li>A3 加速度、等加速度運動與自由落體</li></ul>
+      <span class="go">進入 A 區 →</span>
+    </a>
+    <a class="zone-card" href="force.html" style="--zc:#7a3eb1">
+      <svg viewBox="0 0 300 96" role="img" aria-label="木塊受到拉力、摩擦力、重力與正向力，上方是合力">
+        <!-- 地面在木塊正下方；每個力從自己的作用點畫起，不穿過木塊 -->
+        <rect x="8" y="70" width="284" height="6" rx="3" fill="#dfe8f2"/>
+        <rect x="112" y="34" width="72" height="36" rx="3" fill="#f1e6d2" stroke="#8a6d3b" stroke-width="2"/>
+        <!-- 拉力：作用在右側面 -->
+        <line x1="185" y1="52" x2="238" y2="52" stroke="#7a3eb1" stroke-width="5"/><path d="M254 52l-17-8.5v17z" fill="#7a3eb1"/>
+        <!-- 摩擦力：作用在底面，沿地面向左 -->
+        <line x1="111" y1="66" x2="88" y2="66" stroke="#c2255c" stroke-width="5"/><path d="M73 66l16-8v16z" fill="#c2255c"/>
+        <!-- 正向力：作用在底面，向上（畫在重心線左側，避免與重力重疊） -->
+        <line x1="136" y1="69" x2="136" y2="42" stroke="#0e7490" stroke-width="4"/><path d="M136 28l-7 14h14z" fill="#0e7490"/>
+        <!-- 重力：作用在重心，向下 -->
+        <circle cx="148" cy="52" r="3" fill="#8d4a17"/>
+        <line x1="148" y1="52" x2="148" y2="80" stroke="#8d4a17" stroke-width="4"/><path d="M148 94l-7-14h14z" fill="#8d4a17"/>
+        <!-- 合力：畫在木塊上方 -->
+        <line x1="150" y1="14" x2="176" y2="14" stroke="#1b2733" stroke-width="6"/><path d="M194 14l-19-9.5v19z" fill="#1b2733"/>
+      </svg>
+      <h2>B 區　力與運動</h2>
+      <ul><li>B0 力的複習站</li><li>B1–B3 牛頓三大運動定律</li><li>B4 圓周運動　B5 萬有引力與重量</li></ul>
+      <span class="go">進入 B 區 →</span>
+    </a>
+    <a class="zone-card" href="energy.html" style="--zc:#c98a00">
+      <svg viewBox="0 0 300 96" role="img" aria-label="球在滑軌上滾下，旁邊是動能與位能的長條">
+        <!-- 滑軌：兩端有支架撐著；球的下緣貼在軌道上緣（球心在軌道法線方向、距離＝球半徑＋半個線寬） -->
+        <line x1="16" y1="22" x2="16" y2="84" stroke="#b9c6d4" stroke-width="3"/><line x1="206" y1="46" x2="206" y2="84" stroke="#b9c6d4" stroke-width="3"/>
+        <line x1="6" y1="84" x2="216" y2="84" stroke="#4a5a6a" stroke-width="2"/>
+        <path d="M14 20 C70 20 80 78 130 78 S190 44 208 44" fill="none" stroke="#3d5269" stroke-width="4" stroke-linecap="round"/>
+        <circle cx="82.4" cy="40.2" r="9" fill="#4a6fa5" stroke="#1d3557" stroke-width="2"/>
+        <line x1="228" y1="84" x2="292" y2="84" stroke="#4a5a6a" stroke-width="2"/>
+        <rect x="236" y="50" width="18" height="34" fill="#c98a00"/><rect x="266" y="26" width="18" height="58" fill="#2f9ccb"/>
+        <line x1="228" y1="14" x2="292" y2="14" stroke="#1b2733" stroke-width="2" stroke-dasharray="5 4"/>
+      </svg>
+      <h2>C 區　功與能</h2>
+      <ul><li>C1 功與功率　C2 力學能守恆</li><li>C3 力矩、槓桿與靜力平衡</li><li>C4 滑輪、輪軸與齒輪　C5 斜面與螺旋</li></ul>
+      <span class="go">進入 C 區 →</span>
+    </a>
+  </section>
+
+  <section class="card home-sum" aria-label="總整理">
+    <h2>總整理：三區串成一條線</h2>
+    <p class="muted">三區都學完後再看一次：力讓運動狀態改變，力移動了距離就作功，作功讓能量改變。點任何一格，跳到對應的單元。</p>
+    <div id="sum-all"></div>
+    <details class="ext" style="margin-top:8px"><summary>看三區各自的概念構圖</summary>
+      <h3 style="margin:10px 0 4px">A 區　怎麼描述運動</h3><div id="sum-motion"></div>
+      <h3 style="margin:14px 0 4px">B 區　力與運動</h3><div id="sum-force"></div>
+      <h3 style="margin:14px 0 4px">C 區　功與能</h3><div id="sum-energy"></div>
+    </details>
+  </section>
+
+  <section class="home-foot">
+    <div class="card">
+      <h2>每個單元的五個分頁</h2>
+      <p><b>認識</b>看動畫與公式 → <b>探究</b>先預測再觀察 → <b>挑戰</b>完成任務 → <b>實驗台</b>自由操作 → <b>檢核</b>做題目。</p>
+      <p class="muted">學習紀錄只存在這台裝置的瀏覽器，可在各區右上角下載。</p>
+    </div>
+    <div class="card">
+      <h2>全教具固定的顏色</h2>
+      <div class="legend">
+        <span><i style="background:#0b63c5"></i>位置、位移</span><span><i style="background:#0a8f6a"></i>速度</span><span><i style="background:#d4500a"></i>加速度</span>
+        <span><i style="background:#7a3eb1"></i>拉力、推力</span><span><i style="background:#8d4a17"></i>重力</span><span><i style="background:#0e7490"></i>正向力</span><span><i style="background:#c2255c"></i>摩擦力</span><span><i style="background:#5b7a0c"></i>彈力</span><span><i style="background:#1b2733"></i>合力</span>
+        <span><i style="background:#c98a00"></i>動能</span><span><i style="background:#2f9ccb"></i>位能</span><span><i style="background:#7f8a96"></i>熱能</span>
+      </div>
+      <p class="muted" style="margin-top:6px">箭頭、圖線、能量長條與公式裡的符號都用同一組顏色。</p>
+    </div>
+  </section>
+</div>
+</main>
+<script>
+window.CMAP_BUNDLED=true;
+</script><script>
+/* 力學探索實驗室 — cmap.js：概念構圖（2026-11-22 第四輪驗收第 16 點，草稿已核可）
+ * 不依賴 core.js，入口頁也能用。
+ * 版面原則（使用者交代：文字不可出框、不可破圖）：
+ *   方框是 HTML 元素，大小由文字決定（放不下就在框內換行），不寫死寬度；
+ *   方框排在格線（grid）上，連線由程式量好方框的實際位置後才畫，只連相鄰的格子或經過空格子，不穿過文字；
+ *   關係詞（例：「每秒變多少」）做成獨立的小框，佔自己的格子，不壓在連線或方框上。
+ * 用法：CMAP.render(host, 'motion'|'force'|'energy'|'all', { here: 'b2', onPick: function (zone, unit) {} })
+ */
+(function () {
+  'use strict';
+  var ZF = { motion: 'motion.html', force: 'force.html', energy: 'energy.html' };
+  var ZONE_OF = function (u) { return { a: 'motion', b: 'force', c: 'energy' }[u.charAt(0)]; };
+  var FR = /\{\{((?:(?!\{\{|\}\}|\/\/)[\s\S])+)\/\/((?:(?!\{\{|\}\})[\s\S])+)\}\}/;
+  function fx(s) { s = String(s); var n = 0; while (FR.test(s) && n++ < 30) s = s.replace(FR, '<span class="frac"><span>$1</span><span>$2</span></span>'); return s; }
+
+  /* 節點：id、r 列、c 欄、rs／cs 跨幾列／幾欄、k 種類（zone 起點、n 一般、law 結論、rel 關係詞）、t 標題、l 說明列、u 對應單元
+   * 連線：[起點, 終點, 選項]，選項 { both: 雙向箭頭, none: 不加箭頭 } */
+  var MAPS = {
+    motion: {
+      title: 'A 區　怎麼描述運動', cols: 6,
+      nodes: [
+        { id: 'a1', r: 1, c: 1, u: 'a1', t: '位置 x、時間 t', l: ['位移：位置的變化', '（有方向）', '路徑長：實際走的長度', '單擺週期只和擺長有關'] },
+        { id: 'r1', r: 1, c: 2, k: 'rel', t: '每秒', l: ['變多少'] },
+        { id: 'a2', r: 1, c: 3, u: 'a2', t: '速度 v', l: ['v＝{{位移//時間}}', '速率＝{{路徑長//時間}}'] },
+        { id: 'r2', r: 1, c: 4, k: 'rel', t: '每秒', l: ['變多少'] },
+        { id: 'a3', r: 1, c: 5, u: 'a3', t: '加速度 a', l: ['a＝{{速度的變化//時間}}', '等加速度三個公式', '自由落體：a＝g'] },
+        { id: 'next', r: 1, c: 6, k: 'law', u: 'b2', t: '為什麼會加速？', l: ['因為受到合力', 'F＝ma（B 區）'] },
+        { id: 'gx', r: 2, c: 1, u: 'a2', t: 'x-t 圖', l: ['斜率＝速度'] },
+        { id: 'r3', r: 2, c: 2, k: 'rel', t: '斜率 →', l: ['← 面積'] },
+        { id: 'gv', r: 2, c: 3, u: 'a2', t: 'v-t 圖', l: ['斜率＝加速度', '面積＝位移'] },
+        { id: 'r4', r: 2, c: 4, k: 'rel', t: '斜率 →', l: ['← 面積'] },
+        { id: 'ga', r: 2, c: 5, u: 'a3', t: 'a-t 圖', l: ['面積＝速度的變化'] }
+      ],
+      edges: [['a1', 'r1'], ['r1', 'a2'], ['a2', 'r2'], ['r2', 'a3'], ['a3', 'next'],
+        ['gx', 'r3', { none: 1 }], ['r3', 'gv', { none: 1 }], ['gv', 'r4', { none: 1 }], ['r4', 'ga', { none: 1 }]],
+      notes: ['下面一列是三種運動圖：左邊的圖取斜率得到右邊的量，右邊的圖取面積得到左邊的量。',
+        '紙帶的點、頻閃影像、x-t 圖是同一段運動的三種紀錄：點越來越疏，就是越來越快。g 是重力加速度 9.8 m/s²。']
+    },
+    force: {
+      title: 'B 區　力與運動', cols: 5,
+      nodes: [
+        { id: 'obj', r: 1, c: 1, rs: 3, k: 'zone z-b', t: '物體' },
+        { id: 'free', r: 1, c: 2, u: 'b1', t: '不受力' },
+        { id: 'f', r: 2, c: 2, rs: 2, u: 'b0', t: '受力', l: ['B0 力的複習站'] },
+        { id: 'n0', r: 2, c: 3, u: 'b0', t: '合力＝0', l: ['（力平衡）'] },
+        { id: 'n1', r: 3, c: 3, u: 'b0', t: '合力≠0' },
+        { id: 'res1', r: 1, c: 4, u: 'b1', l: ['① 形狀不變', '② 運動狀態不變'] },
+        { id: 'res2', r: 2, c: 4, u: 'b1', l: ['① 形狀不變', '② 運動狀態不變'] },
+        { id: 'res3', r: 3, c: 4, u: 'b2', l: ['① 形狀改變', '② 運動狀態改變', '（靜⇌動、快⇌慢）'] },
+        { id: 'law1', r: 1, c: 5, rs: 2, k: 'law', u: 'b1', t: '牛頓第一運動定律', l: ['（慣性定律）', '靜者恆靜，', '動者恆做等速度運動', '質量越大，慣性越大'] },
+        { id: 'law2', r: 3, c: 5, k: 'law', u: 'b2', t: '牛頓第二運動定律', l: ['F＝ma', '合力越大，a 越大', '質量越大，a 越小', '重量 W＝mg'] },
+        { id: 'law3', r: 4, c: 2, k: 'law', u: 'b3', t: '牛頓第三運動定律', l: ['力一定成對出現', 'A→B、B→A'] },
+        { id: 'b4', r: 4, c: 4, u: 'b4', t: '圓周運動', l: ['速率不變，', '方向一直改變', '合力指向圓心'] },
+        { id: 'b5', r: 4, c: 5, u: 'b5', t: '萬有引力與重量', l: ['重量就是', '星球→物體的引力'] }
+      ],
+      edges: [['obj', 'free'], ['obj', 'f'], ['f', 'n0'], ['f', 'n1'], ['free', 'res1'], ['n0', 'res2'], ['n1', 'res3'],
+        ['res1', 'law1'], ['res2', 'law1'], ['res3', 'law2'], ['f', 'law3'], ['res3', 'b4'], ['law2', 'b5']],
+      notes: ['B4、B5 都是「合力≠0」的例子：圓周運動改變的是運動方向；重量就是讓物體落下的那個力。',
+        '重量 W＝mg 的 g 是重力加速度 9.8 m/s²（不是公克）。']
+    },
+    energy: {
+      title: 'C 區　功與能', cols: 5,
+      nodes: [
+        { id: 'c1', r: 1, c: 1, k: 'zone z-c', u: 'c1', t: '功 W＝F·S', l: ['力沿著移動方向', '才作功', '功率 P＝{{W//t}}'] },
+        { id: 'r1', r: 1, c: 2, k: 'rel', t: '作功', l: ['改變能量'] },
+        { id: 'c2', r: 1, c: 3, u: 'c2', t: '能量', l: ['動能 ½mv²', '重力位能 mgh', '彈性位能', '摩擦力作負功 → 熱能'] },
+        { id: 'law', r: 1, c: 4, cs: 2, k: 'law', u: 'c2', t: '力學能守恆', l: ['只有重力或彈力作功時：', '動能＋位能＝定值'] },
+        { id: 'r2', r: 2, c: 1, k: 'rel', t: '同一個 W＝F·S', l: ['用在機械上'] },
+        { id: 'mech', r: 3, c: 1, k: 'zone z-c', t: '機械不能省功', l: ['施力×施力移動的距離', '＝物重×上升的高度'] },
+        { id: 'c3', r: 3, c: 3, u: 'c3', t: '力矩與槓桿', l: ['力矩＝力×力臂', '平衡：合力＝0、', '合力矩＝0'] },
+        { id: 'c4', r: 3, c: 4, u: 'c4', t: '滑輪、輪軸、齒輪', l: ['都是槓桿的變形', '幾段繩子承擔，', '就省幾倍力'] },
+        { id: 'c5', r: 3, c: 5, u: 'c5', t: '斜面與螺旋', l: ['F×L＝W×H', 'F＝{{W×H//L}}', '滑下：位能 → 動能'] },
+        { id: 'r3', r: 2, c: 5, k: 'rel', t: '回到', l: ['能量守恆'] }
+      ],
+      edges: [['c1', 'r1'], ['r1', 'c2'], ['c2', 'law'], ['c1', 'r2'], ['r2', 'mech'], ['mech', 'c3'], ['c3', 'c4'], ['c4', 'c5'], ['c5', 'r3'], ['r3', 'law']],
+      notes: ['動能、位能都從 W＝F·S 推出：動能用 F＝ma 與 v²＝2aS；重力位能是等速舉高 h 作的功 mgh；彈性位能是 F-x 圖下的面積。',
+        '機械省力就要多走距離（省力就費時）；滑輪、輪軸可以看成會轉的槓桿，斜面、螺旋是把高度「攤開」成較長的路。']
+    },
+    all: {
+      title: '三區串成一條線', cols: 5,
+      nodes: [
+        { id: 'f', r: 1, c: 1, k: 'zone z-b', u: 'b0', t: '力（合力 F）', l: ['B0 力的複習站', 'B3 力一定成對'] },
+        { id: 'r1', r: 1, c: 2, k: 'rel', t: 'F＝ma' },
+        { id: 'm', r: 1, c: 3, k: 'zone z-a', u: 'b2', t: '改變運動狀態', l: ['a → v → x', 'A1–A3、B1–B2、B4'] },
+        { id: 'r2', r: 1, c: 4, k: 'rel', t: '移動了', l: ['距離 S'] },
+        { id: 'w', r: 1, c: 5, k: 'zone z-c', u: 'c1', t: '作功 W＝F·S', l: ['C1 功與功率'] },
+        { id: 'r3', r: 2, c: 5, k: 'rel', t: '功＝能量的變化' },
+        { id: 'e', r: 3, c: 5, k: 'zone z-c', u: 'c2', t: '能量改變', l: ['動能、位能、熱能', 'C2'] },
+        { id: 'r4', r: 3, c: 4, k: 'rel', t: '只有重力、', l: ['彈力作功'] },
+        { id: 'law', r: 3, c: 3, k: 'law', u: 'c2', t: '力學能守恆', l: ['動能＋位能＝定值'] },
+        { id: 'r5', r: 3, c: 2, k: 'rel', t: '用在機械上' },
+        { id: 'mech', r: 3, c: 1, k: 'law', u: 'c3', t: '機械不能省功', l: ['省力就要多走距離', 'C3 槓桿', 'C4 滑輪　C5 斜面'] }
+      ],
+      edges: [['f', 'r1'], ['r1', 'm'], ['m', 'r2'], ['r2', 'w'], ['w', 'r3'], ['r3', 'e'], ['e', 'r4'], ['r4', 'law'], ['law', 'r5'], ['r5', 'mech']],
+      notes: ['公式的推導鏈就是這條線：F＝ma ＋ v²＝2aS → W＝F·S＝½mv²（動能）；等速舉高 h → W＝mgh（重力位能）；機械：F×L＝W×H。',
+        '比例推理口訣：{{比較量//基準量}}＝比值（倍）。例：距離變 2 倍，引力變 {{1//4}} 倍（B5）；速率變 2 倍，動能變 4 倍（C2）。']
+    }
+  };
+
+  function el(tag, cls, html) { var e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = fx(html); return e; }
+  var NS = 'http://www.w3.org/2000/svg', uid = 0;
+
+  function href(u) {
+    var z = ZONE_OF(u);
+    return (window.LAB_BUNDLED || window.CMAP_BUNDLED ? ZF[z] : 'shell.html?zone=' + z) + '#' + u;
+  }
+
+  function render(host, key, opts) {
+    opts = opts || {};
+    var M = MAPS[key], here = opts.here || null, id = 'cm' + (++uid);
+    var box = el('div', 'cmap' + (here ? ' has-here' : '')), grid = el('div', 'cmap-grid');
+    grid.style.gridTemplateColumns = 'repeat(' + M.cols + ', auto)';
+    var svg = document.createElementNS(NS, 'svg'); svg.setAttribute('class', 'cmap-lines'); svg.setAttribute('aria-hidden', 'true');
+    svg.innerHTML = '<defs><marker id="' + id + 'a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#6b7a8a"/></marker></defs>';
+    grid.appendChild(svg);
+    var byId = {};
+    M.nodes.forEach(function (n) {
+      var tag = n.u ? 'button' : 'div';
+      var hasU = n.u && (n.k || 'n') !== 'rel';
+      var e = el(tag, 'cm-node ' + (n.k || 'n') + (hasU ? ' has-u' : '') + (n.u && n.u === here ? ' here' : '') + (here && n.u !== here ? ' dim' : ''));
+      e.style.gridRow = n.r + (n.rs ? ' / span ' + n.rs : ''); e.style.gridColumn = n.c + (n.cs ? ' / span ' + n.cs : ''); if (n.cs) e.style.maxWidth = 'none';
+      if (n.t) e.appendChild(el('b', 'cm-t', n.t));
+      (n.l || []).forEach(function (s) { e.appendChild(el('span', 'cm-l', s)); });
+      if (hasU) e.appendChild(el('i', 'cm-u', n.u.toUpperCase()));
+      if (n.u && n.u === here) e.appendChild(el('i', 'cm-here', '你在這裡'));
+      if (n.u) {
+        e.type = 'button';
+        e.setAttribute('aria-label', (n.t || (n.l || []).join('，')).replace(/\{\{|\}\}|\/\//g, ' ') + '（前往 ' + n.u.toUpperCase() + '）');
+        e.addEventListener('click', function () {
+          var z = ZONE_OF(n.u);
+          if (opts.onPick && opts.onPick(z, n.u) !== false) return;
+          location.href = href(n.u);
+        });
+      }
+      byId[n.id] = e; grid.appendChild(e);
+    });
+    box.appendChild(grid);
+    if (M.notes && !opts.noNotes) { var ul = el('ul', 'cmap-notes'); M.notes.forEach(function (s) { ul.appendChild(el('li', null, s)); }); box.appendChild(ul); }
+    host.appendChild(box);
+
+    function R(e) { return { l: e.offsetLeft, t: e.offsetTop, r: e.offsetLeft + e.offsetWidth, b: e.offsetTop + e.offsetHeight }; }
+    function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+    function draw() {
+      var W = grid.scrollWidth, H = grid.scrollHeight;
+      if (!W) return;
+      svg.setAttribute('width', W); svg.setAttribute('height', H); svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+      [].slice.call(svg.querySelectorAll('path.cm-e')).forEach(function (p) { p.remove(); });
+      M.edges.forEach(function (ed) {
+        var a = R(byId[ed[0]]), b = R(byId[ed[1]]), o = ed[2] || {}, d;
+        var ol = Math.max(a.l, b.l), or_ = Math.min(a.r, b.r);
+        if (or_ - ol > 16) {                                   /* 上下排：直線 */
+          var x = (ol + or_) / 2;
+          d = a.b <= b.t ? 'M' + x + ',' + a.b + ' L' + x + ',' + (b.t - 1) : 'M' + x + ',' + a.t + ' L' + x + ',' + (b.b + 1);
+        } else {                                               /* 左右排：平順的曲線 */
+          var rt = b.l >= a.r, x1 = rt ? a.r : a.l, x2 = rt ? b.l - 1 : b.r + 1;
+          var y1 = clamp((b.t + b.b) / 2, a.t + 14, a.b - 14), y2 = clamp(y1, b.t + 14, b.b - 14), dx = (x2 - x1) / 2;
+          d = 'M' + x1 + ',' + y1 + ' C' + (x1 + dx) + ',' + y1 + ' ' + (x2 - dx) + ',' + y2 + ' ' + x2 + ',' + y2;
+        }
+        var p = document.createElementNS(NS, 'path');
+        p.setAttribute('d', d); p.setAttribute('class', 'cm-e');
+        if (!o.none) p.setAttribute('marker-end', 'url(#' + id + 'a)');
+        if (o.both) p.setAttribute('marker-start', 'url(#' + id + 'a)');
+        svg.appendChild(p);
+      });
+    }
+    draw();
+    if (window.ResizeObserver) { var ro = new ResizeObserver(draw); ro.observe(grid); box._cmapStop = function () { ro.disconnect(); }; }
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(draw);
+    return { el: box, redraw: draw, nodes: byId };
+  }
+
+  /* 開發用的自我檢查：文字是否超出方框、方框是否重疊、連線是否穿過別的方框。回傳問題清單。 */
+  function check(box) {
+    var out = [], g = box.querySelector('.cmap-grid'), ns = [].slice.call(g.querySelectorAll('.cm-node'));
+    function rr(e) { return e.getBoundingClientRect(); }
+    ns.forEach(function (n, i) {
+      var r = rr(n), name = n.textContent.slice(0, 12);
+      if (n.scrollWidth > n.clientWidth + 1 || n.scrollHeight > n.clientHeight + 1) out.push('內容溢出：' + name);
+      [].forEach.call(n.querySelectorAll('.cm-t, .cm-l, .cm-u, .cm-here'), function (t) {
+        var q = rr(t); if (q.left < r.left - 0.5 || q.right > r.right + 0.5 || q.top < r.top - 0.5 || q.bottom > r.bottom + 0.5) out.push('文字出框：' + name + '｜' + t.textContent.slice(0, 16));
+      });
+      ns.slice(i + 1).forEach(function (m) { var s = rr(m); if (r.left < s.right && s.left < r.right && r.top < s.bottom && s.top < r.bottom) out.push('方框重疊：' + name + '／' + m.textContent.slice(0, 12)); });
+    });
+    var sr = rr(g.querySelector('svg')), sx = sr.width / (+g.querySelector('svg').getAttribute('width') || 1);
+    [].forEach.call(g.querySelectorAll('path.cm-e'), function (p, k) {
+      var L = p.getTotalLength(), j, pt;
+      for (j = 4; j < L - 4; j += 3) {
+        pt = p.getPointAtLength(j);
+        var X = sr.left + pt.x * sx, Y = sr.top + pt.y * sx;
+        ns.forEach(function (n) { var r = rr(n); if (X > r.left + 2 && X < r.right - 2 && Y > r.top + 2 && Y < r.bottom - 2) out.push('連線 ' + k + ' 穿過：' + n.textContent.slice(0, 12)); });
+      }
+    });
+    if (box.scrollWidth > box.clientWidth + 1) out.push('整張圖比容器寬 ' + (box.scrollWidth - box.clientWidth) + 'px（會橫向捲動）');
+    return out.filter(function (s, i, a) { return a.indexOf(s) === i; });
+  }
+
+  window.CMAP = { maps: MAPS, render: render, check: check, href: href };
+})();
+
+</script>
+<script>
+['all', 'motion', 'force', 'energy'].forEach(function (k) { var e = document.getElementById('sum-' + k); if (e && window.CMAP) CMAP.render(e, k); });
+</script>
+<script>
+/* 大螢幕把入口頁等比例放大，不讓內容縮在中間、四周留白（iPad 維持 1 倍） */
+(function fitHome() {
+  function f() { var z = Math.max(1, Math.min(innerWidth / 1040, innerHeight / 640, 2.2)); document.body.style.zoom = z > 1 ? z : ''; var v = document.querySelector('.view'); if (v) v.style.height = (innerHeight / Math.max(z, 1)) + 'px'; }
+  f(); addEventListener('resize', f);
+})();
+</script>
+</body>
+</html>
